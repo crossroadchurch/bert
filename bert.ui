@@ -14,25 +14,6 @@
    <string>Bert</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QToolButton" name="record_button">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>20</y>
-      <width>75</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Record</string>
-    </property>
-    <property name="checkable">
-     <bool>true</bool>
-    </property>
-    <property name="checked">
-     <bool>false</bool>
-    </property>
-   </widget>
    <widget class="Line" name="gain_bg">
     <property name="geometry">
      <rect>
@@ -43,7 +24,7 @@
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color:rgb(255,0,0)</string>
+     <string notr="true">color:rgb(255,127,0)</string>
     </property>
     <property name="frameShadow">
      <enum>QFrame::Plain</enum>
@@ -99,10 +80,43 @@
      <enum>Qt::Vertical</enum>
     </property>
    </widget>
+   <widget class="QPushButton" name="preview_button">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>20</y>
+      <width>71</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Preview</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="start_button">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>60</y>
+      <width>71</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Start/Stop</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+   </widget>
    <zorder>gain_border</zorder>
-   <zorder>record_button</zorder>
    <zorder>gain_bg</zorder>
    <zorder>gain_fg</zorder>
+   <zorder>preview_button</zorder>
+   <zorder>start_button</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

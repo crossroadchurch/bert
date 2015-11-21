@@ -10,3 +10,4 @@ python bertwindow.py
 
 ## changelog
 * 21/11/2015 - initial proof of concept, including basic gain meter
+* 21/11/2015 - Gain meter updated to use Numpy amax method, preview button added

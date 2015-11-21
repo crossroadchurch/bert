@@ -21,23 +21,21 @@
 ###############################################################################
 
 from PyQt4 import QtGui, QtCore
-import pyaudio, pysoundcard, wave, time, sys
+import pyaudio, pysoundcard, numpy, wave, time, sys
 from pysoundcard import Stream, continue_flag
 from soundfile import SoundFile
 from bert_ui import Ui_BertUI
 
 class BertWindow(QtGui.QMainWindow, Ui_BertUI):
 
-    QTR_BLOCK_SIZE = 256
-    QB1 = QTR_BLOCK_SIZE
-    QB2 = 2 * QTR_BLOCK_SIZE
-    QB3 = 3 * QTR_BLOCK_SIZE
+    BLOCK_SIZE = 2048
 
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         Ui_BertUI.__init__(self)
         self.setupUi(self)
         self.rec_state = False
+        self.preview_state = False
 
         # Report audio input devices
         p = pyaudio.PyAudio()
@@ -52,25 +50,47 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
 
         # Setup input stream and callback
         def callback(in_data, out_data, time_info, status):
-            self.myfile.write(in_data)
-            gain_avg = (abs(in_data[0]) + abs(in_data[self.QB1]) + abs(in_data[self.QB2]) + abs(in_data[self.QB3])) / 4
-            self.gain_fg.resize(20,100 - int(100*gain_avg))
+            if self.rec_state==True:
+                self.myfile.write(in_data)
+            self.gain_fg.resize(20,100 - (100*numpy.amax(in_data)))
             return continue_flag
 
-        self.stream = Stream(samplerate=44100, blocksize=4*self.QTR_BLOCK_SIZE, channels=1, callback=callback)
+        self.stream = Stream(samplerate=44100, blocksize=self.BLOCK_SIZE, channels=1, callback=callback)
 
-        def on_record_button_clicked(state):
+        def on_preview_button_clicked(state):
             if state==True:
+                # Start preview mode
+                self.preview_state = True
+                if self.rec_state==False:
+                    self.stream.start() # otherwise stream already started
+            else:
+                # Stop preview mode.  Only stop stream if not recording
+                self.preview_state = False
+                if self.rec_state==False:
+                    self.stream.stop()
+                    self.gain_fg.resize(20,100) # Clear gain meter
+
+
+        def on_start_button_clicked(state):
+            if state==True:
+                # Start recording to file
+                self.gain_bg.setStyleSheet("color:rgb(255,0,0)")
                 self.myfile = SoundFile('output/' + time.strftime("%Y-%m-%d %H_%M_%S") + '.wav', 'w', 44100, 1)
                 self.rec_state = True
                 self.stream.start()
             else:
-                self.stream.stop()
-                self.myfile.close()
-                self.gain_fg.resize(20,100) # Clear gain meter
+                # Stop recording to file.  Keep stream active if preview_state is True
+                self.gain_bg.setStyleSheet("color:rgb(255,127,0)")
                 self.rec_state = False
+                self.myfile.close()
+                if self.preview_state==False:
+                    self.stream.stop()
+                    self.gain_fg.resize(20,100) # Clear gain meter
 
-        QtCore.QObject.connect(self.record_button, QtCore.SIGNAL ('clicked(bool)'), on_record_button_clicked)
+
+        QtCore.QObject.connect(self.preview_button, QtCore.SIGNAL ('clicked(bool)'), on_preview_button_clicked)
+        QtCore.QObject.connect(self.start_button, QtCore.SIGNAL ('clicked(bool)'), on_start_button_clicked)
+
 
     def closeEvent(self, event):
         if self.rec_state == True:
