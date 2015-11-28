@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_BertUI(object):
     def setupUi(self, BertUI):
         BertUI.setObjectName(_fromUtf8("BertUI"))
-        BertUI.resize(288, 232)
+        BertUI.resize(150, 182)
         self.centralwidget = QtGui.QWidget(BertUI)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.gain_bg = QtGui.QFrame(self.centralwidget)
@@ -54,7 +54,7 @@ class Ui_BertUI(object):
         self.preview_button.setCheckable(True)
         self.preview_button.setObjectName(_fromUtf8("preview_button"))
         self.start_button = QtGui.QPushButton(self.centralwidget)
-        self.start_button.setGeometry(QtCore.QRect(20, 60, 71, 31))
+        self.start_button.setGeometry(QtCore.QRect(20, 50, 71, 31))
         self.start_button.setCheckable(True)
         self.start_button.setObjectName(_fromUtf8("start_button"))
         self.gain_border.raise_()
@@ -64,7 +64,7 @@ class Ui_BertUI(object):
         self.start_button.raise_()
         BertUI.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(BertUI)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 288, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 150, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         BertUI.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(BertUI)
@@ -78,3 +78,4 @@ class Ui_BertUI(object):
         BertUI.setWindowTitle(_translate("BertUI", "Bert", None))
         self.preview_button.setText(_translate("BertUI", "Preview", None))
         self.start_button.setText(_translate("BertUI", "Start/Stop", None))
+

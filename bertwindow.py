@@ -22,13 +22,16 @@
 
 from PyQt4 import QtGui, QtCore
 import pyaudio, pysoundcard, numpy, wave, time, sys
+from datetime import timedelta
 from pysoundcard import Stream, continue_flag
 from soundfile import SoundFile
 from bert_ui import Ui_BertUI
 
 class BertWindow(QtGui.QMainWindow, Ui_BertUI):
 
-    BLOCK_SIZE = 2048
+    BLOCK_SIZE = 4410 # 10 blocks = 1 second
+    SAMPLE_RATE = 44100
+    CHANNELS = 1
 
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
@@ -36,6 +39,7 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
         self.setupUi(self)
         self.rec_state = False
         self.preview_state = False
+        self.tick_count = 0
 
         # Report audio input devices
         p = pyaudio.PyAudio()
@@ -52,10 +56,13 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
         def callback(in_data, out_data, time_info, status):
             if self.rec_state==True:
                 self.myfile.write(in_data)
+                #self.tick_count += 1
+                #if self.tick_count % 20 == 0:
+                #    self.time_recorded_label.setText(time.strftime("%H:%M:%S", time.gmtime(self.tick_count / 20)))
             self.gain_fg.resize(20,100 - (100*numpy.amax(in_data)))
             return continue_flag
 
-        self.stream = Stream(samplerate=44100, blocksize=self.BLOCK_SIZE, channels=1, callback=callback)
+        self.stream = Stream(samplerate=self.SAMPLE_RATE, blocksize=self.BLOCK_SIZE, channels=self.CHANNELS, callback=callback)
 
         def on_preview_button_clicked(state):
             if state==True:
@@ -77,6 +84,8 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
                 self.gain_bg.setStyleSheet("color:rgb(255,0,0)")
                 self.myfile = SoundFile('output/' + time.strftime("%Y-%m-%d %H_%M_%S") + '.wav', 'w', 44100, 1)
                 self.rec_state = True
+                self.tick_count = 0
+                self.time_recorded_label.setText("00:00:00")
                 self.stream.start()
             else:
                 # Stop recording to file.  Keep stream active if preview_state is True
