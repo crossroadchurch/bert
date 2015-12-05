@@ -22,7 +22,6 @@
 
 from PyQt4 import QtGui, QtCore
 import pyaudio, pysoundcard, numpy, wave, time, sys
-from datetime import timedelta
 from pysoundcard import Stream, continue_flag
 from soundfile import SoundFile
 from bert_ui import Ui_BertUI
@@ -36,9 +35,11 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         Ui_BertUI.__init__(self)
+        self.installEventFilter(self)
         self.setupUi(self)
         self.rec_state = False
         self.preview_state = False
+        self.active_state = False
         self.tick_count = 0
 
         # Report audio input devices
@@ -56,10 +57,8 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
         def callback(in_data, out_data, time_info, status):
             if self.rec_state==True:
                 self.myfile.write(in_data)
-                #self.tick_count += 1
-                #if self.tick_count % 20 == 0:
-                #    self.time_recorded_label.setText(time.strftime("%H:%M:%S", time.gmtime(self.tick_count / 20)))
-            self.gain_fg.resize(20,100 - (100*numpy.amax(in_data)))
+            if self.active_state==True:
+                self.gain_fg.resize(20,100 - (100*numpy.amax(in_data)))
             return continue_flag
 
         self.stream = Stream(samplerate=self.SAMPLE_RATE, blocksize=self.BLOCK_SIZE, channels=self.CHANNELS, callback=callback)
@@ -77,7 +76,6 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
                     self.stream.stop()
                     self.gain_fg.resize(20,100) # Clear gain meter
 
-
         def on_start_button_clicked(state):
             if state==True:
                 # Start recording to file
@@ -85,7 +83,6 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
                 self.myfile = SoundFile('output/' + time.strftime("%Y-%m-%d %H_%M_%S") + '.wav', 'w', 44100, 1)
                 self.rec_state = True
                 self.tick_count = 0
-                self.time_recorded_label.setText("00:00:00")
                 self.stream.start()
             else:
                 # Stop recording to file.  Keep stream active if preview_state is True
@@ -96,7 +93,6 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
                     self.stream.stop()
                     self.gain_fg.resize(20,100) # Clear gain meter
 
-
         QtCore.QObject.connect(self.preview_button, QtCore.SIGNAL ('clicked(bool)'), on_preview_button_clicked)
         QtCore.QObject.connect(self.start_button, QtCore.SIGNAL ('clicked(bool)'), on_start_button_clicked)
 
@@ -106,6 +102,14 @@ class BertWindow(QtGui.QMainWindow, Ui_BertUI):
             self.stream.stop()
             self.myfile.close()
         event.accept() # let the window close
+
+
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.WindowActivate:
+            self.active_state = True
+        elif event.type()== QtCore.QEvent.WindowDeactivate:
+            self.active_state = False
+        return False
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)

@@ -9,6 +9,7 @@ python processor.py filename.wav - command line to normalise filename.wav
 * 21/11/2015 - initial proof of concept, including basic gain meter
 * 21/11/2015 - Gain meter updated to use Numpy amax method, preview button added
 * 28/11/2015 - Command line normalisation routine added to processor.py
+* 05/12/2015 - Gain meter pauses when window loses focus
 
 ## installed modules
 * alembic (0.7.7)
