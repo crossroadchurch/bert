@@ -1,0 +1,18 @@
+{
+    "podcasts": [
+        {
+            "artist": "Louise Sibley",
+            "date": "2015-12-26",
+            "mp3": "./playlists/2013-06-09.mp3",
+            "title": "2013-06-09",
+            "poster": "./images/jonandlouise.jpg"
+        },
+        {
+            "artist": "Robert Spiller",
+            "date": "2015-12-25",
+            "mp3": "./playlists/2013-06-02.mp3",
+            "title": "2013-06-02",
+            "poster": "./images/ccf.jpg"
+        }
+    ]
+}
