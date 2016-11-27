@@ -88,6 +88,8 @@
     <addaction name="actionSave_playlist"/>
     <addaction name="actionSave_playlist_as"/>
     <addaction name="separator"/>
+    <addaction name="actionUpload_playlist"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -168,6 +170,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Down</string>
+   </property>
+  </action>
+  <action name="actionUpload_playlist">
+   <property name="text">
+    <string>&amp;Upload playlist</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+U</string>
    </property>
   </action>
  </widget>

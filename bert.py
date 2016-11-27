@@ -20,9 +20,12 @@
 # Temple Place, Suite 330, Boston, MA 02111-1307 USA                          #
 ###############################################################################
 import sys, json, os, shutil
+from ftplib import FTP
 from PyQt4 import QtGui, QtCore
 from bert_ui import Ui_BertWindow
 from bert_addtalk import Ui_BertAddTalkDialog
+from bert_upload import Ui_BertUpload
+from bert_ftp import BertFtp
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TALB, TCMP, TIT2, TPE1, error
 from PyQt4.QtCore import Qt
@@ -51,6 +54,7 @@ class PlaylistItemWidget(QtGui.QWidget):
         self.itemLayout.addLayout(self.textLayout,0)
 
         self.setLayout(self.itemLayout)
+
 
     def setTitle(self, title):
         self.titleLabel.setText(title)
@@ -88,6 +92,18 @@ class PlaylistItemWidget(QtGui.QWidget):
     def getData(self):
         return [self.titleLabel.text(), self.artistLabel.text(), self.dateLabel.text(), self.posterUrl, self.mp3Url]
 
+
+class BertUploadDialog(QtGui.QDialog, Ui_BertUpload):
+
+    def __init__(self):
+        QtGui.QDialog.__init__(self)
+        Ui_BertUpload.__init__(self)
+        self.setupUi(self)
+        self.closeButton.clicked.connect(self.close)
+
+    def closeEvent(self, event):
+        self.deleteLater()
+        return
 
 
 class BertAddTalkDialog(QtGui.QDialog, Ui_BertAddTalkDialog):
@@ -159,12 +175,14 @@ class BertWindow(QtGui.QMainWindow, Ui_BertWindow):
         self.actionEdit_talk.triggered.connect(self.editTalk)
         self.actionMove_talk_up.triggered.connect(self.moveTalkUp)
         self.actionMove_talk_down.triggered.connect(self.moveTalkDown)
+        self.actionUpload_playlist.triggered.connect(self.uploadPlaylist)
         self.moveTalkUpButton.clicked.connect(self.moveTalkUp)
         self.moveTalkDownButton.clicked.connect(self.moveTalkDown)
         self.addTalkButton.clicked.connect(self.addTalk)
         self.playlistList.itemDoubleClicked.connect(self.editTalk)
         self.saveNeeded = False
         self.saveUrl = None
+
         return
 
 
@@ -186,6 +204,116 @@ class BertWindow(QtGui.QMainWindow, Ui_BertWindow):
                 return
         self.deleteLater()
         return
+
+
+    def img_tsfr_handler(self, block):
+        global size_written, size_to_write
+        size_written += 1024
+        if size_written > size_to_write:
+            self.uploadDialog.fileProgressBar.setValue(100)
+        else:
+            self.uploadDialog.fileProgressBar.setValue(int(100*size_written/size_to_write))
+
+    def mp3_tsfr_handler(self, block):
+        global size_written, size_to_write
+        size_written += 8192
+        if size_written > size_to_write:
+            self.uploadDialog.fileProgressBar.setValue(100)
+        else:
+            self.uploadDialog.fileProgressBar.setValue(int(100*size_written/size_to_write))
+
+    def uploadPlaylist(self):
+        if self.saveUrl == None:
+            return
+
+        # Save playlist
+        #self.savePlaylist()
+
+
+        # Calculate assets
+        img_assets, mp3_assets = [], []
+        for i in range(self.playlistList.count()):
+            cur_data = self.playlistList.itemWidget(self.playlistList.item(i)).getData()
+            img_assets.append(cur_data[3])
+            mp3_assets.append(cur_data[4])
+
+        # Remove duplicate assets by converting to sets
+        img_asset_set = set(img_assets)
+        mp3_asset_set = set(mp3_assets)
+        job_total = len(img_asset_set) + len(mp3_asset_set) + 1
+
+        # Check that all assets exist
+        missing_assets = []
+        for img in img_asset_set:
+            if not os.path.isfile(img):
+                missing_assets.append(img)
+        for media in mp3_asset_set:
+            if not os.path.isfile(media):
+                missing_assets.append(media)
+        missing_asset_set = set(missing_assets)
+        if len(missing_asset_set) > 0:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Some of the assets for this playlist are missing")
+            msg.setDetailedText('\n'.join(missing_asset_set))
+            msg.setWindowTitle("Missing assets")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+            return
+
+        self.uploadDialog = BertUploadDialog()
+        self.uploadDialog.fileProgressBar.setValue(0)
+        self.uploadDialog.jobProgressBar.setValue(0)
+        self.uploadDialog.show()
+
+        # Upload playlist
+        self.uploadDialog.progressText.setHtml('Connecting to remote server...')
+        ftp=FTP(BertFtp.ServerName, BertFtp.UserName, BertFtp.Password)
+        ftp.cwd(BertFtp.StartDir)
+        ftp.storbinary("STOR " + os.path.basename(self.saveUrl), open(self.saveUrl, 'rb'))
+        cur_job = 1
+        self.uploadDialog.jobProgressBar.setValue(int(100*cur_job/job_total))
+        self.uploadDialog.progressText.append('Playlist uploaded:' + os.path.basename(self.saveUrl))
+
+        # Calculate and upload missing image assets
+        global size_written, size_to_write
+        ftp.cwd('./images')
+        image_dir = ftp.nlst()
+        print(image_dir)
+        for img in img_asset_set:
+            self.uploadDialog.fileProgressBar.setValue(0)
+            if os.path.basename(img) not in image_dir:
+                self.uploadDialog.progressText.append('Uploading image: ' + os.path.basename(img))
+                size_written = 0
+                size_to_write = os.path.getsize(img)
+                ftp.storbinary("STOR " + os.path.basename(img), open(img, 'rb'), callback=self.img_tsfr_handler, blocksize=1024)
+            else:
+                self.uploadDialog.progressText.append('Skipping image: ' + os.path.basename(img))
+            cur_job += 1
+            self.uploadDialog.jobProgressBar.setValue(int(100*cur_job/job_total))
+
+        # Calculate and upload missing mp3 assets
+        ftp.cwd('../playlists')
+        mp3_dir = ftp.nlst()
+        print(mp3_dir)
+        for mp3_asset in mp3_asset_set:
+            self.uploadDialog.fileProgressBar.setValue(0)
+            if os.path.basename(mp3_asset) not in mp3_dir:
+                self.uploadDialog.progressText.append('Uploading MP3: ' + os.path.basename(mp3_asset))
+                size_written = 0
+                size_to_write = os.path.getsize(mp3_asset)
+                ftp.storbinary("STOR " + os.path.basename(mp3_asset), open(mp3_asset, 'rb'), callback=self.mp3_tsfr_handler, blocksize=8192)
+            else:
+                self.uploadDialog.progressText.append('Skipping MP3: ' + os.path.basename(mp3_asset))
+            cur_job += 1
+            self.uploadDialog.jobProgressBar.setValue(int(100*cur_job/job_total))
+
+        # End ftp session
+        self.uploadDialog.progressText.append('Upload complete. Disconnecting from remote server.')
+        self.uploadDialog.closeButton.setEnabled(True)
+        ftp.close()
+        return
+
 
 
     def newPlaylist(self):
