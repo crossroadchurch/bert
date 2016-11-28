@@ -42,12 +42,14 @@ class PlaylistItemWidget(QtGui.QWidget):
         self.titleLabel = QtGui.QLabel()
         self.artistLabel = QtGui.QLabel()
         self.dateLabel = QtGui.QLabel()
+        self.mediaLabel = QtGui.QLabel()
         self.posterLabel = QtGui.QLabel()
 
         self.textLayout = QtGui.QVBoxLayout()
         self.textLayout.addWidget(self.titleLabel)
         self.textLayout.addWidget(self.artistLabel)
         self.textLayout.addWidget(self.dateLabel)
+        self.textLayout.addWidget(self.mediaLabel)
 
         self.itemLayout = QtGui.QHBoxLayout()
         self.itemLayout.addWidget(self.posterLabel)
@@ -67,30 +69,51 @@ class PlaylistItemWidget(QtGui.QWidget):
 
     def setPoster(self, posterPath):
         self.posterUrl = posterPath
-        img = QtGui.QPixmap(posterPath)
-        self.posterLabel.setPixmap(img.scaled(50,50, Qt.KeepAspectRatio))
+        self.drawPoster(posterPath)
 
     def setMp3Url(self, mp3Path):
-        self.mp3Url = mp3Path
+        self.mediaLabel.setText(mp3Path)
+        if os.path.isfile(mp3Path):
+            self.mediaLabel.setStyleSheet("color: black;")
+        else:
+            self.mediaLabel.setStyleSheet("color: red;")
 
     def getJsonData(self):
         return json.dumps({'title':self.titleLabel.text(), \
             'artist':self.artistLabel.text(), \
-            'mp3':self.mp3Url, \
+            'mp3':self.mediaLabel.text(), \
             'date':self.dateLabel.text(), \
             'poster':self.posterUrl})
+
+    def drawPoster(self, posterPath):
+        if os.path.isfile(posterPath):
+            img = QtGui.QPixmap(posterPath)
+            self.posterLabel.setPixmap(img.scaled(50,50, Qt.KeepAspectRatio))
+        else:
+            missingImg = QtGui.QPixmap(50,50)
+            painter = QtGui.QPainter()
+            painter.begin(missingImg)
+            painter.fillRect(0,0,50,50,QtGui.QColor(255,255,255))
+            painter.setPen(QtGui.QPen(QtGui.QColor(255,0,0), 5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+            painter.drawLine(10,10,40,40)
+            painter.drawLine(10,40,40,10)
+            painter.end()
+            self.posterLabel.setPixmap(missingImg)
 
     def setData(self, title, artist, date, posterPath, mp3Path):
         self.titleLabel.setText(title)
         self.artistLabel.setText(artist)
         self.dateLabel.setText(date)
         self.posterUrl = posterPath
-        img = QtGui.QPixmap(posterPath)
-        self.posterLabel.setPixmap(img.scaled(50,50, Qt.KeepAspectRatio))
-        self.mp3Url = mp3Path
+        self.drawPoster(posterPath)
+        self.mediaLabel.setText(mp3Path)
+        if os.path.isfile(mp3Path):
+            self.mediaLabel.setStyleSheet("color: black;")
+        else:
+            self.mediaLabel.setStyleSheet("color: red;")
 
     def getData(self):
-        return [self.titleLabel.text(), self.artistLabel.text(), self.dateLabel.text(), self.posterUrl, self.mp3Url]
+        return [self.titleLabel.text(), self.artistLabel.text(), self.dateLabel.text(), self.posterUrl, self.mediaLabel.text()]
 
 
 class BertUploadDialog(QtGui.QDialog, Ui_BertUpload):
@@ -128,8 +151,23 @@ class BertAddTalkDialog(QtGui.QDialog, Ui_BertAddTalkDialog):
                 shutil.copy(filename, './playlists/')
             self.mp3Url = os.path.join('./playlists/', tail)
             self.inputMedia.setText(self.mp3Url)
+            self.inputMedia.setStyleSheet("background-color: white")
         return
 
+    def drawPoster(self, posterPath):
+        if os.path.isfile(posterPath):
+            img = QtGui.QPixmap(posterPath)
+            self.posterLabel.setPixmap(img.scaled(200,200, Qt.KeepAspectRatio))
+        else:
+            missingImg = QtGui.QPixmap(200,200)
+            painter = QtGui.QPainter()
+            painter.begin(missingImg)
+            painter.fillRect(0,0,200,200,QtGui.QColor(255,255,255))
+            painter.setPen(QtGui.QPen(QtGui.QColor(255,0,0), 20, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+            painter.drawLine(40,40,160,160)
+            painter.drawLine(40,160,160,40)
+            painter.end()
+            self.posterLabel.setPixmap(missingImg)
 
     def setPosterImage(self):
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open poster image', directory='./images/', filter="JPG files (*.jpg)")
@@ -140,7 +178,7 @@ class BertAddTalkDialog(QtGui.QDialog, Ui_BertAddTalkDialog):
                 shutil.copy(filename, './images/')
             self.posterUrl = os.path.join('./images/', tail)
             img = QtGui.QPixmap(self.posterUrl)
-            self.posterLabel.setPixmap(img.scaled(200, 200, Qt.KeepAspectRatio))
+            self.drawPoster(self.posterUrl)
         return
 
 
@@ -149,10 +187,13 @@ class BertAddTalkDialog(QtGui.QDialog, Ui_BertAddTalkDialog):
         self.inputSpeaker.lineEdit().setText(iSpeaker)
         self.inputDate.setDateTime(QtCore.QDateTime.fromString(iDate, 'dd/MM/yyyy'))
         self.posterUrl = iPoster
-        img = QtGui.QPixmap(iPoster)
-        self.posterLabel.setPixmap(img.scaled(200, 200, Qt.KeepAspectRatio))
+        self.drawPoster(self.posterUrl)
         self.mp3Url = iMP3
         self.inputMedia.setText(iMP3)
+        if os.path.isfile(iMP3):
+            self.inputMedia.setStyleSheet("background-color: white")
+        else:
+            self.inputMedia.setStyleSheet("background-color: red")
 
 
     def getTalkData(self):
@@ -227,8 +268,7 @@ class BertWindow(QtGui.QMainWindow, Ui_BertWindow):
             return
 
         # Save playlist
-        #self.savePlaylist()
-
+        self.savePlaylist()
 
         # Calculate assets
         img_assets, mp3_assets = [], []
