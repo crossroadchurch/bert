@@ -136,7 +136,7 @@ class BertAddTalkDialog(QtGui.QDialog, Ui_BertAddTalkDialog):
         Ui_BertAddTalkDialog.__init__(self)
         self.setupUi(self)
         self.inputDate.setDateTime(QtCore.QDateTime.currentDateTime())
-        self.posterUrl = './images/ccf.jpg'
+        self.posterUrl = './posters/ccf.jpg'
         self.mp3Url = ''
         self.choosePosterButton.clicked.connect(self.setPosterImage)
         self.chooseMediaButton.clicked.connect(self.setMediaLocation)
@@ -144,12 +144,12 @@ class BertAddTalkDialog(QtGui.QDialog, Ui_BertAddTalkDialog):
 
     def setMediaLocation(self):
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open MP3 file', filter="MP3 files (*.mp3)")
-        # Check if filename is in ./playlists/ - if not copy to this directory
+        # Check if filename is in ./talks/ - if not copy to this directory
         if filename:
             head, tail = os.path.split(filename)
-            if not os.path.isfile(os.path.join('./playlists/', tail)):
-                shutil.copy(filename, './playlists/')
-            self.mp3Url = os.path.join('./playlists/', tail)
+            if not os.path.isfile(os.path.join('./talks/', tail)):
+                shutil.copy(filename, './talks/')
+            self.mp3Url = os.path.join('./talks/', tail)
             self.inputMedia.setText(self.mp3Url)
             self.inputMedia.setStyleSheet("background-color: white")
         return
@@ -170,13 +170,13 @@ class BertAddTalkDialog(QtGui.QDialog, Ui_BertAddTalkDialog):
             self.posterLabel.setPixmap(missingImg)
 
     def setPosterImage(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open poster image', directory='./images/', filter="JPG files (*.jpg)")
-        # Check if filename is in ./images/ - if not copy to this directory
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open poster image', directory='./posters/', filter="JPG files (*.jpg)")
+        # Check if filename is in ./posters/ - if not copy to this directory
         if filename:
             head, tail = os.path.split(filename)
-            if not os.path.isfile(os.path.join('./images/', tail)):
-                shutil.copy(filename, './images/')
-            self.posterUrl = os.path.join('./images/', tail)
+            if not os.path.isfile(os.path.join('./posters/', tail)):
+                shutil.copy(filename, './posters/')
+            self.posterUrl = os.path.join('./posters/', tail)
             img = QtGui.QPixmap(self.posterUrl)
             self.drawPoster(self.posterUrl)
         return
@@ -315,9 +315,18 @@ class BertWindow(QtGui.QMainWindow, Ui_BertWindow):
         self.uploadDialog.jobProgressBar.setValue(int(100*cur_job/job_total))
         self.uploadDialog.progressText.append('Playlist uploaded:' + os.path.basename(self.saveUrl))
 
+        # Check if posters and talks directories exist. If not, create them
+        root_dir = ftp.nlst()
+        if "posters" not in root_dir:
+            ftp.mkd('./posters')
+            self.uploadDialog.progressText.append('Posters directory was not detected. Directory created.')
+        if "talks" not in root_dir:
+            ftp.mkd('./talks')
+            self.uploadDialog.progressText.append('Talks directory was not detected. Directory created.')
+
         # Calculate and upload missing image assets
         global size_written, size_to_write
-        ftp.cwd('./images')
+        ftp.cwd('./posters')
         image_dir = ftp.nlst()
         print(image_dir)
         for img in img_asset_set:
@@ -333,7 +342,7 @@ class BertWindow(QtGui.QMainWindow, Ui_BertWindow):
             self.uploadDialog.jobProgressBar.setValue(int(100*cur_job/job_total))
 
         # Calculate and upload missing mp3 assets
-        ftp.cwd('../playlists')
+        ftp.cwd('../talks')
         mp3_dir = ftp.nlst()
         print(mp3_dir)
         for mp3_asset in mp3_asset_set:
